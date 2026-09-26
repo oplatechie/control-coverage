@@ -103,7 +103,8 @@ def main():
     agent = load_manifest(args.agent)
     existing = [a for a in call("GET", "/agents").get("data", []) if a.get("name") == agent["name"]]
     if existing:
-        call("PUT", f"/agents/{existing[0]['id']}", agent)
+        call("PUT", f"/agents/{existing[0]['id']}",
+             {"description": agent["description"], "manifest": agent["manifest"]})
         print(f"agent updated: {agent['name']} ({existing[0]['id']})")
     else:
         created = call("POST", "/agents", agent).get("data", {})
