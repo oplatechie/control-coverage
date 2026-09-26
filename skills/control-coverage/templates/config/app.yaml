@@ -1,0 +1,4 @@
+app: payments-demo          # app name
+tier: 1                     # 1 = critical (all critical standards always apply), 2, 3
+always_apply: [STD-SEC-01]  # standards checked on every release regardless of the diff
+not_applicable: {}          # {STD-ID: "reason"} — narrowing; must be approved in the setup PR

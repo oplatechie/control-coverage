@@ -1,0 +1,3 @@
+# standard -> files or globs it covers
+STD-CRYPTO-02: ["app/api/payments.py", "app/vault.py"]
+STD-AC-02: ["app/api/admin_auth.py", "app/auth.py"]

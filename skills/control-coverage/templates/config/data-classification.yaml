@@ -1,0 +1,5 @@
+# field -> type. PAN -> STD-CRYPTO-02, STD-LOG-01. PII -> STD-LOG-01, STD-DP-01.
+# Use table.column for stored fields and request.<field> for API inputs. Optional: standards: [...]
+fields:
+  request.card_number: {type: PAN}
+  merchants.email: {type: PII}
