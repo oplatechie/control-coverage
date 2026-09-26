@@ -84,7 +84,11 @@ def main():
     else:
         print("model provider: skipped (OPENAI_API_KEY not set)")
 
-    if os.environ.get("DAYTONA_API_KEY"):
+    existing_sandbox = call("GET", "/settings/sandbox-providers").get("data")
+    if existing_sandbox:
+        # re-saving rebuilds the Daytona snapshot, which can time out; keep the working one
+        print("sandbox provider: already configured, kept")
+    elif os.environ.get("DAYTONA_API_KEY"):
         call("PUT", "/settings/sandbox-providers", {"manifest": {
             "type": "daytona", "auth": {"api_key": os.environ["DAYTONA_API_KEY"]},
             "exec_timeout_ms": 600000, "auto_stop_interval_in_minutes": 30,
