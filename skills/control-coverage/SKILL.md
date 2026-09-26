@@ -73,8 +73,9 @@ Then re-run Step 5.
 
 **Step 8: Verdict.** `python3 $SKILL/scripts/verdict.py --repo /work/repo --base <base> --head <head> --work /work`
 - **blocked** → `create_issue` for each blocking item not yet filed, `add_controls` with the new tests, report, stop.
-- **conditional** → for each open item ask ONE clarifying question: "<finding> — accept for this release or reject?"
-  with options Accept / Reject, and ask for reason and fix-by version. Write `/work/answers.json`
+- **conditional** → ask the approver about ALL open items in ONE clarifying-question step (one question per
+  item: "<finding ID + name> — accept for this release or reject?", options Accept / Reject), plus one
+  question for approver name, reason and fix-by version. Write `/work/answers.json`
   `[{"id": "<finding id>", "decision": "accept|reject", "approver": "<name>", "reason": "...", "fix_by": "..."}]`,
   re-run verdict.py, act on the new result.
 - **cleared / cleared_with_exceptions** → Step 9.
