@@ -1,6 +1,7 @@
 """Shared helpers for Control Coverage scripts: config loading, git diff parsing, naming."""
 import fnmatch
 import json
+import os
 import re
 import subprocess
 import sys
@@ -24,9 +25,28 @@ def git(repo, *args, check=True):
     return out.stdout
 
 
+def controls_path():
+    """Controls come from CC_CONTROLS (e.g. fetched from the GRC system via controls-mcp get_controls),
+    else the copy bundled with this skill."""
+    return Path(os.environ.get("CC_CONTROLS") or SKILL_DIR / "controls.yaml")
+
+
 def load_standards():
-    data = yaml.safe_load((SKILL_DIR / "controls.yaml").read_text())
+    data = yaml.safe_load(controls_path().read_text())
     return {s["id"]: s for s in data["standards"]}
+
+
+def label(item_id, standards=None):
+    """'STD-AC-02.a Admin login needs TOTP or a security key' / 'STD-AC-02 Strong authentication ...'"""
+    standards = standards or load_standards()
+    std_id = item_id.split(".")[0]
+    std = standards.get(std_id)
+    if not std:
+        return item_id
+    if "." not in item_id:
+        return f"{item_id} {std['title']}"
+    ctl = next((c for c in std["controls"] if c["id"] == item_id), {})
+    return f"{item_id} {ctl.get('name', '')}".strip()
 
 
 def all_controls(standards):

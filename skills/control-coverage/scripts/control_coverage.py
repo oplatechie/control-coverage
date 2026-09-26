@@ -61,7 +61,7 @@ def evaluate(selection, checks, coverage, results_dir):
             status = "uncovered"
         else:
             status = "covered"
-        rows.append({"control": cid, "standard": c["standard"], "severity": c["severity"],
+        rows.append({"control": cid, "name": c.get("name", ""), "standard": c["standard"], "severity": c["severity"],
                      "status": status, "tests": tests, "uncovered_lines": uncovered})
     return rows
 
@@ -77,7 +77,7 @@ def main():
     write_json(a.out, rows)
     for r in rows:
         extra = f" uncovered={r['uncovered_lines']}" if r["uncovered_lines"] else ""
-        print(f"{r['control']}: {r['status']} ({len(r['tests'])} tests){extra}")
+        print(f"{r['control']} {r['name']}: {r['status']} ({len(r['tests'])} tests){extra}")
 
 
 if __name__ == "__main__":

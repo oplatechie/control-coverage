@@ -49,7 +49,7 @@ def main():
         two = subagents.get(cid)
         two_txt = (f"{two['counter_patch_kind']} patch -> {two['counter_run']} ✔" if two and two.get("status", "").startswith("proven")
                    else ("new this run: " + two["status"]) if two else "existing test")
-        lines.append(f"| {cid} | {rules} | {'<br>'.join(tests_by_control.get(cid, ['-']))} | {row['status']} | {two_txt} |")
+        lines.append(f"| {cid} {row.get('name', '')} | {rules} | {'<br>'.join(tests_by_control.get(cid, ['-']))} | {row['status']} | {two_txt} |")
     lines += ["", f"Outside evidence required (not checked here): {', '.join(v.get('outside_evidence', [])) or 'none'}"]
     changed = changes.get("tests_changed", [])
     lines.append("Control test changes since previous release: " +

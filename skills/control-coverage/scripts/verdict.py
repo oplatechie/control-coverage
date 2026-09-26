@@ -44,18 +44,19 @@ def build(repo, base, head, work):
     # behaviour-test controls
     for r in rows:
         cid, sev = r["control"], r["severity"]
+        cname = f"{cid} {r.get('name', '')}".strip()
         unverified = [s for s in subagents.get(cid, []) if s.get("status") == "unverified"]
         if r["status"] == "failing":
-            findings.append(finding(f"{cid}:failing", "control_failing", sev, f"{cid} control test fails", cid, r["tests"]))
+            findings.append(finding(f"{cid}:failing", "control_failing", sev, f"{cname}: control test fails", cid, r["tests"]))
         elif r["status"] == "known_gap":
-            findings.append(finding(f"{cid}:known_gap", "known_gap", sev, f"{cid} known gap still open (xfail)", cid, r["tests"]))
+            findings.append(finding(f"{cid}:known_gap", "known_gap", sev, f"{cname}: known gap still open (xfail)", cid, r["tests"]))
         elif r["status"] == "uncovered":
             findings.append(finding(f"{cid}:uncovered", "uncovered", "high" if sev == "critical" else sev,
-                                    f"{cid} tests do not execute changed lines", cid, r["uncovered_lines"]))
+                                    f"{cname}: tests do not run the changed lines", cid, r["uncovered_lines"]))
         elif r["status"] == "no_tests":
             if unverified:
                 findings.append(finding(f"{cid}:unverified", "unverified", "high" if sev == "critical" else sev,
-                                        f"{cid} could not be verified by a test", cid, unverified[0].get("notes")))
+                                        f"{cname}: could not be verified by a test", cid, unverified[0].get("notes")))
             else:
                 incomplete.append(f"{cid} has no test and no result")
 

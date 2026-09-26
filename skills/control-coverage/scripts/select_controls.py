@@ -12,7 +12,7 @@ import re
 from collections import defaultdict
 
 import rules
-from cc_lib import (CONFIG_DIR, TESTS_DIR, all_controls, changed_lines, file_at, load_app_config,
+from cc_lib import (CONFIG_DIR, TESTS_DIR, all_controls, changed_lines, file_at, label, load_app_config,
                     load_standards, match_globs, read_json, write_json)
 
 TYPE_STANDARDS = {"PAN": ["STD-CRYPTO-02", "STD-LOG-01"], "PII": ["STD-LOG-01", "STD-DP-01"]}
@@ -96,10 +96,11 @@ def select(repo, base, head, added=None):
         if std in not_applicable:
             continue
         trig = {p: sorted(ls) for p, ls in entry["trigger_lines"].items()}
-        out_standards[std] = {"layers": sorted(entry["layers"]), "trigger_lines": trig,
-                              "reasons": entry["reasons"]}
+        out_standards[std] = {"title": standards[std]["title"], "layers": sorted(entry["layers"]),
+                              "trigger_lines": trig, "reasons": entry["reasons"]}
         for c in standards[std]["controls"]:
-            row = {"control": c["id"], "standard": std, "method": c["method"],
+            row = {"control": c["id"], "name": c.get("name", ""), "text": c["text"],
+                   "standard": std, "method": c["method"],
                    "severity": controls[c["id"]]["severity"], "trigger_lines": trig}
             (outside if c["method"] == "outside_evidence" else out_controls).append(row)
 
@@ -129,7 +130,11 @@ def main():
     print(f"mode={result['mode']} standards={len(result['standards'])} controls={len(result['controls'])} "
           f"outside_evidence={len(result['outside_evidence'])} unmatched_files={result['unmatched_files']}")
     for std, e in result["standards"].items():
-        print(f"  {std}: layers={','.join(e['layers'])} files={list(e['trigger_lines'])}")
+        why = "; ".join(e["reasons"][:2])
+        print(f"  {std} {e['title']}: layers={','.join(e['layers'])} files={list(e['trigger_lines'])}"
+              + (f" ({why})" if why else ""))
+    for c in result["controls"]:
+        print(f"    - {c['control']} {c['name']} [{c['method']}]")
 
 
 if __name__ == "__main__":

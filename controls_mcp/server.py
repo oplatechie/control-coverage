@@ -3,6 +3,7 @@
 Runs on the harness host (never in the sandbox). The GitHub token is read from .env and is
 scoped to one repo (DEMO_REPO). Checks that protect the release are enforced here, in code:
 
+  get_controls         read      bank-wide standards and controls from the source of record (GRC API or file)
   get_release_scope    read      commits, merged PRs, reviews, maker-checker gaps between two refs
   create_issue         write     open an issue (reversible)
   add_controls         write     PR that ADDS new files under controls/ only (rejects existing paths)
@@ -10,6 +11,7 @@ scoped to one repo (DEMO_REPO). Checks that protect the release are enforced her
   create_release       DESTRUCTIVE  tag + GitHub release, only for a cleared verdict -> approval required
 """
 import base64
+import hashlib
 import json
 import os
 import re
@@ -30,6 +32,8 @@ REPO = os.environ.get("DEMO_REPO", "")
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
 PORT = int(os.environ.get("CONTROLS_MCP_PORT", "8801"))
 API = "https://api.github.com"
+# Source of record for controls: an https URL (e.g. the bank's GRC system export) or a file path.
+CONTROLS_SOURCE = os.environ.get("CONTROLS_SOURCE") or str(ROOT / "skills/control-coverage/controls.yaml")
 
 mcp = FastMCP("controls-mcp", host="127.0.0.1", port=PORT)
 READ = ToolAnnotations(readOnlyHint=True)
@@ -87,6 +91,26 @@ def _open_pr(branch, title, body, files, deletions=()):
 def _branch_name(prefix, title):
     slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:40]
     return f"{prefix}/{slug}-{os.urandom(2).hex()}"
+
+
+@mcp.tool(annotations=READ)
+def get_controls(standard_ids: list[str] | None = None) -> dict:
+    """Bank-wide standards and their controls, from the source of record (CONTROLS_SOURCE).
+    Returns YAML text and a version hash for the evidence. Pass standard_ids to fetch only some
+    standards (keeps context small when the catalogue is large)."""
+    if CONTROLS_SOURCE.startswith("https://"):
+        with urllib.request.urlopen(CONTROLS_SOURCE) as r:
+            text = r.read().decode()
+    else:
+        text = Path(CONTROLS_SOURCE).read_text()
+    version = hashlib.sha256(text.encode()).hexdigest()[:12]
+    if standard_ids:
+        import yaml  # only needed for filtering
+        data = yaml.safe_load(text)
+        data["standards"] = [s for s in data["standards"] if s["id"] in set(standard_ids)]
+        text = yaml.safe_dump(data, sort_keys=False)
+    return {"source": CONTROLS_SOURCE if not CONTROLS_SOURCE.startswith("/") else "controls.yaml (bundled)",
+            "version": version, "yaml": text}
 
 
 @mcp.tool(annotations=READ)

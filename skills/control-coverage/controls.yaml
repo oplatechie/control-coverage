@@ -23,6 +23,7 @@ standards:
     framework_rules: [PCI-4.1, ISO-A.8.24, RBI-C.1.1]
     controls:
       - id: STD-CRYPTO-01.a
+        name: No plain-HTTP or unverified TLS calls
         text: No outbound call uses an http:// URL or disables certificate verification.
         method: code_rule
         rule: tls-outbound
@@ -36,20 +37,24 @@ standards:
     framework_rules: [PCI-3.4, PCI-3.5, ISO-A.8.24, RBI-C.1.1]
     controls:
       - id: STD-CRYPTO-02.a
+        name: No full card number stored
         text: No full card number is stored in any database table.
         method: behaviour_test
         test_hint: >
           Send a known test PAN through every API that accepts card data. Then read every
           value in every table (db.all_values()) and assert none is a Luhn-valid 13-19 digit number.
       - id: STD-CRYPTO-02.b
+        name: Card number masked in API responses
         text: API responses show at most the last 4 digits of a card number.
         method: behaviour_test
         test_hint: Call every endpoint that returns the resource. Assert no full PAN in the body (find_pans) and last 4 present.
       - id: STD-CRYPTO-02.c
+        name: Card number never logged
         text: Card numbers are never written to application logs.
         method: behaviour_test
         test_hint: Use caplog at INFO level around every card-accepting call. Assert find_pans(caplog.text) is empty.
       - id: STD-CRYPTO-02.d
+        name: Encryption keys held in KMS
         text: Encryption keys are held in the enterprise KMS, not in the repo.
         method: outside_evidence
 
@@ -60,6 +65,7 @@ standards:
     framework_rules: [PCI-6.2, ISO-A.5.17]
     controls:
       - id: STD-SEC-01.a
+        name: No secrets in the repo
         text: No secrets in the repository.
         method: scanner
         scanner: gitleaks
@@ -71,6 +77,7 @@ standards:
     framework_rules: [PCI-7.2, ISO-A.5.15, RBI-C.2.1]
     controls:
       - id: STD-AC-01.a
+        name: Merchants see only their own records
         text: A merchant cannot read or change another merchant's records.
         method: behaviour_test
         test_hint: >
@@ -87,6 +94,7 @@ standards:
     framework_rules: [PCI-8.4, ISO-A.5.17, RBI-C.2.1]
     controls:
       - id: STD-AC-02.a
+        name: Admin login needs TOTP or a security key
         text: An admin session can only be created after a TOTP or WebAuthn check. Email or SMS codes never complete admin login.
         method: behaviour_test
         test_hint: >
@@ -94,6 +102,7 @@ standards:
           factor the app offers (including codes found in captured_emails). Only TOTP or
           WebAuthn may produce an admin session; an emailed code must get 401/403.
       - id: STD-AC-02.b
+        name: Admin endpoints need an admin session
         text: Admin endpoints reject requests without a valid admin session.
         method: behaviour_test
         test_hint: Call every admin endpoint with no session and with a made-up session. Expect 401/403.
@@ -105,6 +114,7 @@ standards:
     framework_rules: [PCI-10.2, ISO-A.8.15, RBI-C.3.1]
     controls:
       - id: STD-LOG-01.a
+        name: Audit record on every sensitive read
         text: Every endpoint that returns card or personal data writes an audit record naming the actor and resource.
         method: behaviour_test
         test_hint: Call each read endpoint, then query audit_log (db.rows) for a row with the caller as actor and the resource id.
@@ -116,6 +126,7 @@ standards:
     framework_rules: [PCI-10.3, ISO-A.8.15, RBI-C.3.1]
     controls:
       - id: STD-LOG-02.a
+        name: Central write-once logs
         text: Logs are stored centrally with write-once retention.
         method: outside_evidence
 
@@ -126,6 +137,7 @@ standards:
     framework_rules: [PCI-6.2, ISO-A.8.28]
     controls:
       - id: STD-SDLC-01.a
+        name: Malformed input rejected
         text: Every endpoint rejects malformed input with 422 and stores nothing.
         method: behaviour_test
         test_hint: For each write endpoint send malformed values (wrong types, out-of-range, non-digit card numbers). Expect 422 and no new rows.
@@ -137,6 +149,7 @@ standards:
     framework_rules: [PCI-6.3, RBI-C.4.1]
     controls:
       - id: STD-SDLC-02.a
+        name: No known-vulnerable dependencies
         text: No dependency in requirements.txt has a known critical or high vulnerability.
         method: scanner
         scanner: osv-scanner
@@ -148,9 +161,11 @@ standards:
     framework_rules: [ISO-A.5.34, RBI-C.1.1]
     controls:
       - id: STD-DP-01.a
+        name: No unneeded personal data returned
         text: APIs do not return personal data fields that the caller does not need.
         method: behaviour_test
         test_hint: For each read endpoint, compare returned fields against the documented response; no extra personal fields (email, phone, full name) beyond what is required.
       - id: STD-DP-01.b
+        name: Data deleted after retention
         text: Data is deleted after its retention period.
         method: outside_evidence
