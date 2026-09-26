@@ -7,12 +7,15 @@ scoped to one repo (DEMO_REPO). Checks that protect the release are enforced her
   get_release_scope    read      commits, merged PRs, reviews, maker-checker gaps between two refs
   create_issue         write     open an issue (reversible)
   add_controls         write     PR that ADDS new files under controls/ only (rejects existing paths)
+  propose_fix          write     PR with a proven fix patch to APP code only (rejects controls/, tests/, CI)
   change_controls      DESTRUCTIVE  PR that modifies/deletes files under controls/  -> approval required
   create_release       DESTRUCTIVE  tag + GitHub release, only for a cleared verdict -> approval required
 """
 import base64
 import hashlib
 import json
+import subprocess
+import tempfile
 import os
 import re
 import urllib.error
@@ -171,6 +174,40 @@ def add_controls(files: dict[str, str], title: str, body: str) -> dict:
         if _path_exists_on_main(path):
             raise GitHubError(f"refused: {path} already exists on main; use change_controls (needs approval)")
     return _open_pr(_branch_name("controls-add", title), title, body, files)
+
+
+FIX_FORBIDDEN = re.compile(r"^(controls/|tests/|\.github/)|(^|/)(conftest|testkit)\.py$|pytest\.ini$")
+
+
+@mcp.tool(annotations=WRITE)
+def propose_fix(patch: str, title: str, body: str) -> dict:
+    """Open a PR with a fix patch (unified diff, e.g. the fix proven by two_sided.py) to APP code only.
+    Refused if the patch touches controls/, tests/, fixtures or CI: a fix may never change the checks
+    that judge it. A person reviews and merges the PR; the agent cannot merge."""
+    paths = sorted(set(re.findall(r"^(?:\+\+\+|---) (?:a/|b/)?(\S+)", patch, re.M)) - {"/dev/null"})
+    if not paths:
+        raise GitHubError("refused: patch has no file paths")
+    bad = [p for p in paths if FIX_FORBIDDEN.search(p) or ".." in p]
+    if bad:
+        raise GitHubError(f"refused: a fix may only change app code, not {bad}")
+    branch = _branch_name("fix", title)
+    with tempfile.TemporaryDirectory() as tmp:
+        url = f"https://x-access-token:{TOKEN}@github.com/{REPO}.git"
+        def run(*cmd):
+            out = subprocess.run(cmd, cwd=tmp, capture_output=True, text=True)
+            if out.returncode != 0:
+                raise GitHubError(f"{cmd[1]} failed: {out.stderr.replace(TOKEN, '***')[:300]}")
+        run("git", "clone", "-q", "--depth", "1", url, ".")
+        run("git", "checkout", "-q", "-b", branch)
+        Path(tmp, ".fix.patch").write_text(patch if patch.endswith("\n") else patch + "\n")
+        run("git", "apply", ".fix.patch")
+        Path(tmp, ".fix.patch").unlink()
+        run("git", "-c", "user.name=control-coverage", "-c", "user.email=agent@control-coverage",
+            "commit", "-q", "-am", title)
+        run("git", "push", "-q", "origin", branch)
+    pr = gh("POST", "/pulls", {"title": title, "head": branch, "base": "main",
+                               "body": body + "\n\n_Proposed by Control Coverage. Review before merging._"})
+    return {"pr": pr["number"], "url": pr["html_url"], "files": paths}
 
 
 @mcp.tool(annotations=DESTRUCTIVE)

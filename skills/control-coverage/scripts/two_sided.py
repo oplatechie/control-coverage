@@ -63,6 +63,7 @@ def main():
         executed = {"file": a.trigger_file, "wanted": sorted(want), "executed": sorted(want & ran)}
 
     result = {"control": control_of_test(a.test), "test": a.test, "status": status,
+              "worktree": str(Path(a.repo).resolve()), "written_by": "two_sided.py",
               "release_run": release, "counter_patch_kind": kind, "counter_run": counter,
               "patch": Path(a.patch).read_text(), "trigger_coverage": executed,
               "release_output": release_out, "counter_output": counter_out}

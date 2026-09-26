@@ -59,31 +59,34 @@ not selected, add it to `/work/added_controls.json` as
 `python3 $SKILL/scripts/control_coverage.py --selection /work/selection.json --results /work/results --out /work/control_coverage.json`
 
 **Step 6: Write missing tests (parallel subagents).** For EACH control with status `no_tests` or
-`uncovered`, start ONE subagent (one control per subagent, all in the same step so they run in parallel).
-Name it `test-writer · <control ID> <control name>`. Its input is `$SKILL/templates/test_writer.md`
-with every `{placeholder}` filled; for `uncovered`, the trigger lines are the uncovered lines and the new
-test file name gets a suffix (e.g. `test_std_log_01_a_refunds.py`).
+`uncovered` in control_coverage.json, start ONE subagent (one control per subagent, all in the same step so
+they run in parallel). Name it `test-writer · <control ID> <control name>`. Its input is
+`$SKILL/templates/test_writer.md` with every `{placeholder}` filled: trigger file/lines = the control's
+uncovered lines (or its trigger lines); test file = `test_<std_id_lowercase_with_underscores>_<letter>_<feature>.py`,
+e.g. `test_std_log_01_a_refunds.py`.
 
-**Step 7: Bring new tests into the release checkout.** For each `/work/results/subagents/*.json`:
-- copy the test file from `/work/wt/<control>/controls/tests/` into `/work/repo/controls/tests/`;
-- `proven-fail`: `create_issue` (title "Control gap: <ID> <name>", body: failing output + fix patch from
-  the JSON), then add `@pytest.mark.xfail(strict=True, reason="<issue url> <control ID>")` to the test;
-- `unverified`: do not copy; mention it.
-Then re-run Step 5.
+**Step 7: Collect proven tests.** `python3 $SKILL/scripts/collect_tests.py --work /work --repo /work/repo`
+(copies only tests proven by two_sided.py; proven-fail tests become known gaps; fix patches saved to
+`/work/results/fixes/`). For each proven-fail: `create_issue` titled "Control gap: <ID> <name>" with the failing
+output and the fix patch, then
+`python3 $SKILL/scripts/collect_tests.py --repo /work/repo --set-issue <ID>=<issue url>`.
 
 **Step 8: Verdict.** `python3 $SKILL/scripts/verdict.py --repo /work/repo --base <base> --head <head> --work /work`
-- **blocked** → `create_issue` for each blocking item not yet filed, `add_controls` with the new tests, report, stop.
-- **conditional** → ask the approver about ALL open items in ONE clarifying-question step (one question per
-  item: "<finding ID + name> — accept for this release or reject?", options Accept / Reject), plus one
-  question for approver name, reason and fix-by version. Write `/work/answers.json`
-  `[{"id": "<finding id>", "decision": "accept|reject", "approver": "<name>", "reason": "...", "fix_by": "..."}]`,
-  re-run verdict.py, act on the new result.
+(it re-runs all checks itself, so results are always current).
+- **blocked** → for each proven-fail with a fix patch: `propose_fix` (patch = the .patch file content, title
+  "Fix <ID> <name>", body = issue link + what the patch does). `add_controls` with the new tests. Report, stop.
+- **conditional** → ONE clarifying question listing every open item as "<ID + name>: <summary>", options
+  "Accept for this release" / "Reject (block and propose fixes)", and ask in the same step for approver name,
+  reason and fix-by version. Then
+  `python3 $SKILL/scripts/record_answers.py --work /work --decision accept|reject --approver "<name>" --reason "<reason>" --fix-by "<version>"`
+  and run verdict.py again. Rejected → it becomes blocked: do the **blocked** actions.
 - **cleared / cleared_with_exceptions** → Step 9.
 
 **Step 9: Publish (needs approval).** `add_controls` with the new tests (title "Control tests for <head>"), then
 `python3 $SKILL/scripts/evidence.py --work /work --repo /work/repo --base <base> --head <head> --out /work/evidence.md`,
-then call `create_release` with tag `<head>`, the head SHA from scope.json, short notes, the evidence markdown,
-the verdict and the accepted finding ids. A person approves this call. Finish with the table.
+then call `create_release` with tag `<head>` (the release name the user gave, e.g. v1.2.0), the head SHA from
+scope.json, short notes, the evidence markdown, the verdict and the accepted finding ids. A person approves
+this call. Finish with the table.
 
 ## SETUP mode (first run on an app; nothing is released)
 1. Say: "No control setup for this app yet. Running setup; nothing will be released."
@@ -93,6 +96,6 @@ the verdict and the accepted finding ids. A person approves this call. Finish wi
 4. Read the app (routes, models, auth, logging). Draft `/work/repo/controls/config/app.yaml`, `paths.yaml`,
    `data-classification.yaml` following `$SKILL/templates/config/`.
 5. For EACH `behaviour_test` control: one test-writer subagent (as RELEASE Step 6), all in one step.
-6. Bring tests in as RELEASE Step 7, then `python3 $SKILL/scripts/run_checks.py --repo /work/repo --results /work/results`.
+6. Collect and file issues as RELEASE Step 7, then `python3 $SKILL/scripts/run_checks.py --repo /work/repo --results /work/results`.
 7. `add_controls` with all new files under `controls/`; PR body = table Control (ID + name) | Method | Result.
 8. Report the PR link and: "Verdict: blocked until the setup PR is reviewed and merged."

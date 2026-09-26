@@ -22,6 +22,15 @@ def finding(fid, kind, severity, summary, control=None, detail=None):
             "control": control, "detail": detail}
 
 
+def rerun_checks(repo, work):
+    """Always measure the current checkout: re-run every check before deciding (no stale results)."""
+    import subprocess
+    import sys
+    script = Path(__file__).resolve().parent / "run_checks.py"
+    subprocess.run([sys.executable, str(script), "--repo", str(repo), "--results", str(Path(work) / "results")],
+                   check=True, capture_output=True, text=True)
+
+
 def build(repo, base, head, work):
     work = Path(work)
     selection = select(repo, base, head, read_json(work / "added_controls.json", []))
@@ -39,7 +48,8 @@ def build(repo, base, head, work):
     subagents = {}
     for f in (work / "results/subagents").glob("*.json") if (work / "results/subagents").exists() else []:
         r = read_json(f)
-        subagents.setdefault(r.get("control"), []).append(r)
+        if r.get("written_by") == "two_sided.py" or r.get("status") == "unverified":
+            subagents.setdefault(r.get("control"), []).append(r)
 
     # behaviour-test controls
     for r in rows:
@@ -146,7 +156,10 @@ def main():
     ap.add_argument("--base")
     ap.add_argument("--work", required=True)
     ap.add_argument("--out")
+    ap.add_argument("--no-rerun", action="store_true", help="use existing results (testing only)")
     a = ap.parse_args()
+    if not a.no_rerun:
+        rerun_checks(a.repo, a.work)
     v = build(a.repo, a.base, a.head, a.work)
     write_json(a.out or f"{a.work}/verdict.json", v)
     print(f"VERDICT: {v['verdict'].upper()}")
