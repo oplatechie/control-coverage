@@ -16,7 +16,8 @@ from cc_lib import (CONFIG_DIR, TESTS_DIR, all_controls, changed_lines, file_at,
                     load_standards, match_globs, read_json, write_json)
 
 TYPE_STANDARDS = {"PAN": ["STD-CRYPTO-02", "STD-LOG-01"], "PII": ["STD-LOG-01", "STD-DP-01"]}
-IGNORE = re.compile(r"^(controls/|\.github/|README|LICENSE|docs/)|\.md$")
+# not app code: control files (handled by check_control_changes), CI, docs, and the team's own tests/fixtures
+IGNORE = re.compile(r"^(controls/|tests/|\.github/|README|LICENSE|docs/)|\.md$|(^|/)(conftest|testkit)\.py$|pytest\.ini$")
 
 
 def select(repo, base, head, added=None):
