@@ -1,0 +1,9 @@
+# local TrueForge state (sessions, stored keys) — never commit
+.trueforge/
+.env
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+.trueforge-server.log
