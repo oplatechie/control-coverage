@@ -4,16 +4,19 @@ Code coverage for bank security controls. A TrueForge agent that turns written s
 
 Built for the TrueFoundry × Polaris "Agents That Act" hackathon (26 Sep 2026). Work in progress.
 
-## Run TrueForge for this project
+## Setup
 
-Requires Node.js 22.14+.
+Requires Node.js 22.14+ and Python 3.11+.
 
 ```bash
-cp .env.example .env        # fill in keys
-./scripts/start-trueforge.sh
+cp .env.example .env                      # fill in keys
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+./scripts/start-trueforge.sh              # terminal 1: TrueForge on http://localhost:8791
+.venv/bin/python scripts/setup.py         # registers model provider, sandbox, skill, MCP servers, agent
 ```
 
-Opens on http://localhost:8791. State is kept in `.trueforge/` inside this folder (git-ignored).
+TrueForge state (sessions, stored keys) is kept in `.trueforge/` inside this folder and is git-ignored.
+The start script allows outbound calls only to `127.0.0.1` / `localhost` in addition to TrueForge's defaults, so the local `controls-mcp` server can be reached.
 
 ## AI assistance
 

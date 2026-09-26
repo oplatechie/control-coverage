@@ -1,0 +1,8 @@
+[
+  {
+    "type": "remote",
+    "name": "controls-mcp",
+    "url": "http://127.0.0.1:8801/mcp",
+    "description": "Control Coverage tools: add control tests (new files only), change control tests (gated), create release (gated)."
+  }
+]

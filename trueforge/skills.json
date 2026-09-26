@@ -1,0 +1,10 @@
+[
+  {
+    "type": "git",
+    "name": "control-coverage",
+    "url": "https://github.com/oplatechie/control-coverage",
+    "path": "skills/control-coverage",
+    "ref": "main",
+    "description": "Check a repo or release against the bank's security controls by writing and running tests."
+  }
+]
