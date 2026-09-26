@@ -4,6 +4,10 @@ Code coverage for bank security controls. A TrueForge agent that turns written s
 
 Built for the TrueFoundry × Polaris "Agents That Act" hackathon (26 Sep 2026). Work in progress.
 
+## How it works
+
+See [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md): the release flow, selection layers, control coverage, the two-sided check, the verdict rules, and the TrueForge features used.
+
 ## Setup
 
 Requires Node.js 22.14+ and Python 3.11+.
