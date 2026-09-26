@@ -11,6 +11,36 @@ person approves it.
 
 ---
 
+## Why it matters
+
+**The old way.** An auditor raises a comment such as "show that card numbers are never stored in plain text" or
+"prove every read of customer data is logged". The team answers it by hand: someone reads the code, pastes
+screenshots or a spreadsheet, and writes "done" in a ticket or email. Nobody can re-run that answer later, it
+doesn't say which commit it covered, and the next release can quietly break it. Risk acceptance ("we'll fix it next
+quarter") sits in a chat thread with no link to the release.
+
+**With Control Coverage.** Each control becomes a committed test that is proven to catch a violation, and every
+release is checked against it automatically. The answer to the audit comment becomes a record attached to the
+GitHub release:
+- which controls applied, and why they were selected
+- which tests ran, with their git blob hashes, and whether they passed
+- what was found, and the proven fix
+- who accepted any remaining risk, with their reason and fix-by version
+- who approved publishing
+
+Anyone can re-run it with `git checkout <sha> && pytest controls/tests`. If a later change weakens a test or skips a
+code path, the next release check catches it instead of the next audit.
+
+**How it works.**
+1. The agent runs on **TrueForge**. The model plans each step from a git-backed skill, and TrueForge executes the tool calls, pauses for human questions and approvals, and records every step in a session.
+2. All code runs in a **Daytona sandbox** that holds no credentials. GitHub is reached only through our **controls-mcp** server, which enforces the rules in code: tests can be added but not weakened, fixes may change app code but not tests, and only a cleared release can be published.
+3. Controls are selected in **five layers**: file paths, classified data fields, code-structure rules (Python AST), additions by the model, and the app's tier. Their union is used, and the model can add controls but never remove them.
+4. For each selected control, a script measures whether the release's changed lines are run by that control's tests. For every gap, TrueForge starts **one subagent per control in parallel**, and each writes a pytest.
+5. Every new test must pass a **two-sided check** run by a script: it must fail on a patch that breaks the control and pass on code that meets it.
+6. A script computes the verdict from the raw results. A person accepts or rejects the findings, and the approval card for `create_release` ensures nothing ships without them. Stack: TrueForge 0.2.1, OpenAI `gpt-5.5`, Daytona, a Python MCP server, pytest and coverage.py, gitleaks, pip-audit.
+
+---
+
 ## What you get after setup
 
 - A local TrueForge (chat UI + API) on `http://localhost:8791`, with state stored in this folder
